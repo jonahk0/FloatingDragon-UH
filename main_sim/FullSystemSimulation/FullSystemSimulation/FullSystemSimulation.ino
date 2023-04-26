@@ -23,7 +23,7 @@ Helper functions for calculating FlashIAP block device limits
 // #include <Adafruit_BME688.h>
 //#define LAUNCH_ALTITUDE -63.83
 //#define GROUND_ALTITUDE -89.53
-float LAUNCH_ALTITUDE = 100;
+float LAUNCH_ALTITUDE = 30;
 float altitude = LAUNCH_ALTITUDE;
 float GROUND_ALTITUDE = 0;
 
@@ -155,10 +155,12 @@ unsigned long currentMillis = millis();
 struct_timer startTimer(int timerType){
   struct_timer newTimer;
 
+
   if(timerType == ONESECTIMER){
     newTimer.start_time = millis();
     newTimer.end_time = newTimer.start_time + 1000;
     newTimer.timeout = 0;
+    altitude = altitude - 1;
   }
   else if (timerType == PARACHUTETIMER){
     newTimer.start_time = millis();
@@ -323,7 +325,7 @@ void setup() {
   // startSensors();
   // calculate_trajectory();
   // start_monitoring();
-  altitude = 100;
+  altitude = LAUNCH_ALTITUDE;
 
 }
 // Define states as constants
@@ -343,6 +345,7 @@ String Flight_STATUS = "Start Up";
 
 void loop() {
   // Execute code for current state
+  delay(100);
   switch (state) {
     case STATE_STARTUP:
       // Perform actions for startup state
@@ -355,6 +358,7 @@ void loop() {
       }
       Flight_STATUS = "Start Up";
       state = STATE_WAIT_FOR_LAUNCH;
+      Serial.println(Flight_STATUS);
       break;
       
     case STATE_WAIT_FOR_LAUNCH:
@@ -378,13 +382,12 @@ void loop() {
       if(checkTimer(onesectimer)){
         //Send Data
         sendStatus();
-        altitude = altitude - 1;
 
         onesectimer = startTimer(ONESECTIMER);
       }
       Flight_STATUS = "BEING LAUNCHED";
       state = STATE_DEPLOY_PARACHUTE;
-      
+      Serial.println(Flight_STATUS);
       break;
       
     case STATE_DEPLOY_PARACHUTE:
@@ -406,6 +409,7 @@ void loop() {
         
         
       }
+      Serial.println(Flight_STATUS);
       break;
       
     case STATE_FLIGHT:
@@ -421,8 +425,9 @@ void loop() {
       if(checkTimer(motortimer)){
         //PID CONTROL
         //stopMotors();
+        Serial.println(Flight_STATUS);
 
-        //motortimer = startTimer(MOTORTIMER);
+        motortimer = startTimer(MOTORTIMER);
       }
       Flight_STATUS = "IN FLIGHT";
       if (landingDetected()) {
@@ -444,6 +449,7 @@ void loop() {
 
       Flight_STATUS = "BRACING FOR LANDING";
       state = STATE_DONE;
+      Serial.println(Flight_STATUS);
       break;
       
     case STATE_DONE:
@@ -538,7 +544,7 @@ void sendSensorData(){
   // event.magnetic.z
 
   //outgoing_message = {device_name, DATAMESSAGE, "DATA", bme.readAltitude(SEALEVELPRESSURE_HPA), event.acceleration.x, event.acceleration.y, event.acceleration.z, event.gyro.x, event.gyro.y, event.gyro.z}; 
-    outgoing_message = {device_name, DATAMESSAGE, "DATA", altitude, 0, 0, 0, 0, 0, 0}; 
+    outgoing_message = {device_name, DATAMESSAGE, "DATA", altitude, random(-100, 100), random(-100, 100), random(-100, 100), random(0, 360), random(0, 360), random(0, 360)}; 
     updateSerialMonitor();
   // Send message via ESP-NOW
   // esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &outgoing_message, sizeof(outgoing_message));
